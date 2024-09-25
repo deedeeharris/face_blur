@@ -8,7 +8,7 @@ import os
 # Function to blur detected faces in a video
 def blur_faces_in_video(input_video_path, output_video_path):
     mp_face_detection = mp.solutions.face_detection
-    face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.5)
+    face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.3)
 
     cap = cv2.VideoCapture(input_video_path)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
