@@ -1,15 +1,11 @@
-
 import streamlit as st
 import cv2
-import mediapipe as mp
 import tempfile
 import os
+from deepface import DeepFace
 
-# Function to blur detected faces in a video
+# Function to blur detected faces in a video using DeepFace
 def blur_faces_in_video(input_video_path, output_video_path):
-    mp_face_detection = mp.solutions.face_detection
-    face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.3)
-
     cap = cv2.VideoCapture(input_video_path)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -18,29 +14,31 @@ def blur_faces_in_video(input_video_path, output_video_path):
     fourcc = cv2.VideoWriter_fourcc(*'WMV2')
     out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
 
-    def blur_face(frame, x1, y1, x2, y2):
-        face_roi = frame[y1:y2, x1:x2]
-        blurred_face = cv2.GaussianBlur(face_roi, (51, 51), 30)
-        frame[y1:y2, x1:x2] = blurred_face
-        return frame
-
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
 
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = face_detection.process(rgb_frame)
+        try:
+            # Detect faces using DeepFace with RetinaFace as the backend
+            face_objs = DeepFace.extract_faces(frame, detector_backend='retinaface')
+            
+            for face_obj in face_objs:
+                face = face_obj['face']
+                facial_area = face_obj['facial_area']
 
-        if results.detections:
-            for detection in results.detections:
-                bboxC = detection.location_data.relative_bounding_box
-                ih, iw, _ = frame.shape
-                x1 = int(bboxC.xmin * iw)
-                y1 = int(bboxC.ymin * ih)
-                x2 = x1 + int(bboxC.width * iw)
-                y2 = y1 + int(bboxC.height * ih)
-                frame = blur_face(frame, x1, y1, x2, y2)
+                # Extract coordinates
+                x, y, w, h = facial_area['x'], facial_area['y'], facial_area['w'], facial_area['h']
+                
+                # Apply Gaussian blur to the detected face
+                blurred_face = cv2.GaussianBlur(face, (99, 99), 30)
+
+                # Replace the original face area with the blurred face
+                frame[y:y+h, x:x+w] = blurred_face
+
+        except Exception as e:
+            # No faces detected in this frame
+            pass
 
         out.write(frame)
 
