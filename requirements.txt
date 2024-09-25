@@ -3,3 +3,4 @@ streamlit  # Latest version as of July 2024
 opencv-python-headless # Latest compatible version for cloud environments
 mediapipe # Latest version with face detection
 deepface
+distutils
